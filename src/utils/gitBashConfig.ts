@@ -4,6 +4,37 @@ import * as path from "path";
 const GIT_BASH_ENV_VAR = "CLAUDE_CODE_GIT_BASH_PATH";
 const GIT_BASH_DOWNLOAD_URL = "https://git-scm.com/downloads/win";
 
+/**
+ * Detects if the current locale is Japanese.
+ * Checks LANG, LC_ALL, and LC_MESSAGES environment variables.
+ */
+export function isJapaneseLocale(): boolean {
+  const locale =
+    process.env.LC_ALL ?? process.env.LC_MESSAGES ?? process.env.LANG ?? "";
+  return locale.toLowerCase().startsWith("ja");
+}
+
+function getMessages() {
+  if (isJapaneseLocale()) {
+    return {
+      envVarNotFound: (envPath: string) =>
+        `${GIT_BASH_ENV_VAR} が "${envPath}" に設定されていますが、ファイルが見つからないか、実行できません。`,
+      notFound: () =>
+        `Windows 上の Claude Code には git-bash が必要です (${GIT_BASH_DOWNLOAD_URL})。` +
+        `インストール済みで PATH に含まれていない場合は、bash.exe を指す環境変数を設定してください。例: ` +
+        `${GIT_BASH_ENV_VAR}=C:\\Program Files\\Git\\bin\\bash.exe`,
+    };
+  }
+  return {
+    envVarNotFound: (envPath: string) =>
+      `${GIT_BASH_ENV_VAR} is set to "${envPath}" but the file was not found or is not executable.`,
+    notFound: () =>
+      `Claude Code on Windows requires git-bash (${GIT_BASH_DOWNLOAD_URL}). ` +
+      `If installed but not in PATH, set environment variable pointing to your bash.exe, similar to: ` +
+      `${GIT_BASH_ENV_VAR}=C:\\Program Files\\Git\\bin\\bash.exe`,
+  };
+}
+
 // Common git-bash installation paths on Windows
 const COMMON_GIT_BASH_PATHS = [
   "C:\\Program Files\\Git\\bin\\bash.exe",
@@ -78,13 +109,13 @@ function findBashInCommonLocations(): string | null {
  * @throws {Error} If git-bash cannot be found and we are on Windows.
  */
 export function resolveGitBashPath(): string {
+  const messages = getMessages();
+
   // 1. Check user-specified environment variable
   const envPath = process.env[GIT_BASH_ENV_VAR];
   if (envPath) {
     if (!fileExists(envPath)) {
-      throw new Error(
-        `${GIT_BASH_ENV_VAR} is set to "${envPath}" but the file was not found or is not executable.`
-      );
+      throw new Error(messages.envVarNotFound(envPath));
     }
     return envPath;
   }
@@ -102,11 +133,7 @@ export function resolveGitBashPath(): string {
   }
 
   // Not found — emit the user-friendly error
-  throw new Error(
-    `Claude Code on Windows requires git-bash (${GIT_BASH_DOWNLOAD_URL}). ` +
-      `If installed but not in PATH, set environment variable pointing to your bash.exe, similar to: ` +
-      `${GIT_BASH_ENV_VAR}=C:\\Program Files\\Git\\bin\\bash.exe`
-  );
+  throw new Error(messages.notFound());
 }
 
 /**
