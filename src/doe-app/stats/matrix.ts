@@ -62,7 +62,14 @@ export function leastSquaresFit(X: Matrix, Y: number[]): LsqResult {
     // Fallback to SVD pseudoinverse
     rankDeficient = true
     const svd = new SingularValueDecomposition(X, { autoTranspose: true })
-    const pseudoInv = svd.pseudoInverse
+    // Manual pseudoinverse: V * diag(1/σ) * U'
+    const U = svd.leftSingularVectors
+    const V = svd.rightSingularVectors
+    const sigmas = svd.diagonal
+    const threshold = 1e-10 * Math.max(...sigmas)
+    const Sinv = Matrix.zeros(V.columns, U.columns)
+    sigmas.forEach((s, i) => { if (s > threshold) Sinv.set(i, i, 1 / s) })
+    const pseudoInv = V.mmul(Sinv).mmul(U.transpose())
     beta = pseudoInv.mmul(Ymat).getColumn(0)
     XtXinv = pseudoInv.mmul(pseudoInv.transpose())
   }

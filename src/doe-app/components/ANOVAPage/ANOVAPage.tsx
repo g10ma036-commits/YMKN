@@ -2,6 +2,7 @@ import React, { useState, lazy, Suspense } from 'react'
 import { useDOEContext } from '../../hooks/useDOEState'
 import { sigStars } from '../shared/SignificanceBadge'
 import { computeResidualDiagnostics } from '../../stats/residuals'
+import type { FittedModel } from '../../types/doe'
 
 const Plot = lazy(() => import('react-plotly.js'))
 
@@ -57,7 +58,7 @@ export function ANOVAPage() {
   )
 }
 
-function ANOVAPanel({ model }: { model: import('../../types/doe').FittedModel }) {
+function ANOVAPanel({ model }: { model: FittedModel }) {
   const { anovaTable } = model
   const effectsForPareto = model.parameterEstimates
     .filter((p) => p.term.type !== 'intercept')
@@ -114,9 +115,17 @@ function ANOVAPanel({ model }: { model: import('../../types/doe').FittedModel })
               layout={{
                 height: Math.max(200, effectsForPareto.length * 32 + 60),
                 margin: { l: 100, r: 20, t: 20, b: 40 },
-                xaxis: { title: '|t値|', zeroline: true },
-                shapes: [{ type: 'line', x0: 2, x1: 2, y0: -0.5, y1: effectsForPareto.length - 0.5, line: { color: 'red', dash: 'dot', width: 1 } }],
-                annotations: [{ x: 2, y: effectsForPareto.length - 1, text: 't=2', showarrow: false, font: { color: 'red', size: 11 } }]
+                xaxis: { title: { text: '|t値|' }, zeroline: true },
+                shapes: [{
+                  type: 'line', x0: 2, x1: 2,
+                  y0: -0.5, y1: effectsForPareto.length - 0.5,
+                  line: { color: 'red', dash: 'dot', width: 1 }
+                }],
+                annotations: [{
+                  x: 2, y: effectsForPareto.length - 1,
+                  text: 't=2', showarrow: false,
+                  font: { color: 'red', size: 11 }
+                }]
               }}
               config={{ displayModeBar: false, responsive: true }}
               style={{ width: '100%' }}
@@ -128,7 +137,7 @@ function ANOVAPanel({ model }: { model: import('../../types/doe').FittedModel })
   )
 }
 
-function ResidualPanel({ model }: { model: import('../../types/doe').FittedModel }) {
+function ResidualPanel({ model }: { model: FittedModel }) {
   const { state } = useDOEContext()
   const runOrders = state.designRuns
     .filter((r) => {
@@ -141,6 +150,8 @@ function ResidualPanel({ model }: { model: import('../../types/doe').FittedModel
   const diag = computeResidualDiagnostics(model, runOrders)
   const n = diag.residuals.length
   const threshold4n = 4 / n
+  const fittedMin = Math.min(...diag.fittedValues)
+  const fittedMax = Math.max(...diag.fittedValues)
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -157,10 +168,11 @@ function ResidualPanel({ model }: { model: import('../../types/doe').FittedModel
             }]}
             layout={{
               height: 280, margin: { l: 50, r: 20, t: 10, b: 50 },
-              xaxis: { title: '予測値' }, yaxis: { title: 'スチューデント化残差', zeroline: true },
+              xaxis: { title: { text: '予測値' } },
+              yaxis: { title: { text: 'スチューデント化残差' }, zeroline: true },
               shapes: [
-                { type: 'line', x0: Math.min(...diag.fittedValues), x1: Math.max(...diag.fittedValues), y0: 3, y1: 3, line: { color: 'red', dash: 'dot', width: 1 } },
-                { type: 'line', x0: Math.min(...diag.fittedValues), x1: Math.max(...diag.fittedValues), y0: -3, y1: -3, line: { color: 'red', dash: 'dot', width: 1 } }
+                { type: 'line', x0: fittedMin, x1: fittedMax, y0: 3, y1: 3, line: { color: 'red', dash: 'dot', width: 1 } },
+                { type: 'line', x0: fittedMin, x1: fittedMax, y0: -3, y1: -3, line: { color: 'red', dash: 'dot', width: 1 } }
               ]
             }}
             config={{ displayModeBar: false, responsive: true }}
@@ -190,8 +202,8 @@ function ResidualPanel({ model }: { model: import('../../types/doe').FittedModel
             ]}
             layout={{
               height: 280, margin: { l: 50, r: 20, t: 10, b: 50 },
-              xaxis: { title: '理論正規分位点' },
-              yaxis: { title: 'スチューデント化残差' }
+              xaxis: { title: { text: '理論正規分位点' } },
+              yaxis: { title: { text: 'スチューデント化残差' } }
             }}
             config={{ displayModeBar: false, responsive: true }}
             style={{ width: '100%' }}
@@ -207,11 +219,13 @@ function ResidualPanel({ model }: { model: import('../../types/doe').FittedModel
             data={[{
               type: 'scatter', mode: 'lines+markers',
               x: runOrders, y: diag.residuals,
-              marker: { color: '#1a56db', size: 6 }, line: { color: '#93c5fd', width: 1 }
+              marker: { color: '#1a56db', size: 6 },
+              line: { color: '#93c5fd', width: 1 }
             }]}
             layout={{
               height: 280, margin: { l: 50, r: 20, t: 10, b: 50 },
-              xaxis: { title: '実行順序' }, yaxis: { title: '残差', zeroline: true }
+              xaxis: { title: { text: '実行順序' } },
+              yaxis: { title: { text: '残差' }, zeroline: true }
             }}
             config={{ displayModeBar: false, responsive: true }}
             style={{ width: '100%' }}
@@ -232,8 +246,15 @@ function ResidualPanel({ model }: { model: import('../../types/doe').FittedModel
             }]}
             layout={{
               height: 280, margin: { l: 50, r: 20, t: 10, b: 50 },
-              xaxis: { title: '標準順序' }, yaxis: { title: "Cook's D" },
-              shapes: [{ type: 'line', x0: Math.min(...runOrders) - 0.5, x1: Math.max(...runOrders) + 0.5, y0: threshold4n, y1: threshold4n, line: { color: 'red', dash: 'dot', width: 1 } }]
+              xaxis: { title: { text: '標準順序' } },
+              yaxis: { title: { text: "Cook's D" } },
+              shapes: [{
+                type: 'line',
+                x0: Math.min(...runOrders) - 0.5,
+                x1: Math.max(...runOrders) + 0.5,
+                y0: threshold4n, y1: threshold4n,
+                line: { color: 'red', dash: 'dot', width: 1 }
+              }]
             }}
             config={{ displayModeBar: false, responsive: true }}
             style={{ width: '100%' }}

@@ -240,13 +240,13 @@ function ContourPlotSection() {
             y: yLabels,
             colorscale: 'RdYlGn',
             contours: { showlabels: true },
-            colorbar: { title: resp?.name ?? '応答' }
+            colorbar: { title: { text: resp?.name ?? '応答' } }
           }]}
           layout={{
             height: 420,
             margin: { l: 60, r: 20, t: 20, b: 60 },
-            xaxis: { title: xf?.name ?? 'X' },
-            yaxis: { title: yf?.name ?? 'Y' }
+            xaxis: { title: { text: xf?.name ?? 'X' } },
+            yaxis: { title: { text: yf?.name ?? 'Y' } }
           }}
           config={{ displayModeBar: false, responsive: true }}
           style={{ width: '100%' }}
