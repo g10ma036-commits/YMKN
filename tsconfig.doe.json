@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "rootDir": "./src/doe-app",
+    "outDir": "./out/renderer",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src/doe-app/**/*"]
+}
